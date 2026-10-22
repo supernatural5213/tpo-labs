@@ -21,10 +21,11 @@ if os.path.exists("pytest_report.xml"):
     m = re.search(r'<testsuite [^>]*', x)
     attrs = dict(re.findall(r'(\w+)="([^"]*)"', m.group(0))) if m else {}
     lines.append(f"PYTEST tests={attrs.get('tests')} failures={attrs.get('failures')} errors={attrs.get('errors')}")
-    for tc in re.finditer(r'<testcase [^>]*?name="([^"]+)"[^>]*?(/>|>(.*?)</testcase>)', x, re.S):
+    for tc in re.finditer(r'<testcase ([^>]*?)(/>|>(.*?)</testcase>)', x, re.S):
+        name = re.search(r'\bname="([^"]+)"', tc.group(1)).group(1)
         body = tc.group(3) or ""
         st = "FAILED" if ("<failure" in body or "<error" in body) else "PASSED"
-        lines.append(f"PYTEST {st} {tc.group(1)}")
+        lines.append(f"PYTEST {st} {name}")
 if os.path.exists("zap_report.json"):
     z = json.load(open("zap_report.json"))
     cnt = {}
