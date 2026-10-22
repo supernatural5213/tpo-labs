@@ -30,7 +30,11 @@ jobs:
           locust -f locustfile.py --headless -u 50 -r 10 --run-time 1m --host=http://127.0.0.1:5000 --csv=load_report --html=load_report.html
 
       - name: Check test cases TC-01..TC-03
-        run: python check_load.py
+        run: python check_load.py | tee check_load.txt
+
+      - name: Publish results
+        if: always()
+        run: python ci_summary.py
 
       - name: Upload report
         if: always()
@@ -40,3 +44,4 @@ jobs:
           path: |
             load_report_*.csv
             load_report.html
+            check_load.txt

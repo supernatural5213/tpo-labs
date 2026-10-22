@@ -1,0 +1,69 @@
+name: Security Tests
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  security:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install dependencies
+        run: pip install -r requirements.txt
+
+      # TC-01: SAST. Полный отчёт сохраняется всегда, сборку останавливают только High.
+      - name: Run Bandit (report)
+        run: bandit -r . -x ./tests -f txt -o bandit_report.txt || true
+
+      - name: Run Bandit (gate, severity High)
+        run: bandit -r . -x ./tests --severity-level high
+
+      # TC-03, TC-04 и дополнительные негативные тесты API
+      - name: Run API security tests
+        if: always()
+        run: pytest tests -v --junitxml=pytest_report.xml
+
+      - name: Run Flask app
+        if: always()
+        env:
+          API_TOKEN: ci-secret-token
+        run: |
+          python app.py &
+          sleep 5
+          curl -s http://localhost:5000/api/users
+
+      # TC-02: DAST. Образ owasp/zap2docker-stable и zap-cli сняты с поддержки,
+      # поэтому используется официальный образ ghcr.io/zaproxy/zaproxy и скрипт zap-api-scan.py
+      # (spider по OpenAPI + active scan + HTML-отчёт).
+      - name: Run ZAP (DAST)
+        if: always()
+        run: |
+          docker run --network host -u root -v ${{ github.workspace }}:/zap/wrk:rw \
+            ghcr.io/zaproxy/zaproxy:stable zap-api-scan.py \
+            -t http://localhost:5000/openapi.json -f openapi \
+            -r zap_report.html -J zap_report.json -w zap_report.md -I
+
+      - name: Publish results
+        if: always()
+        run: python ci_summary.py
+
+      - name: Upload report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: zap-report
+          path: |
+            zap_report.html
+            zap_report.json
+            zap_report.md
+            bandit_report.txt
+            pytest_report.xml

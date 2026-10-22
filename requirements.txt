@@ -1,3 +1,5 @@
 flask
 locust
 requests
+bandit
+pytest

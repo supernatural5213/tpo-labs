@@ -1,0 +1,30 @@
+{
+  "openapi": "3.0.3",
+  "info": {"title": "Users API", "version": "1.0"},
+  "servers": [{"url": "http://localhost:5000"}],
+  "paths": {
+    "/api/users": {
+      "get": {
+        "parameters": [
+          {"name": "name", "in": "query", "schema": {"type": "string"}, "example": "user_abc"},
+          {"name": "limit", "in": "query", "schema": {"type": "integer"}, "example": 10},
+          {"name": "offset", "in": "query", "schema": {"type": "integer"}, "example": 0}
+        ],
+        "responses": {"200": {"description": "Список пользователей"}}
+      },
+      "post": {
+        "requestBody": {"required": true, "content": {"application/json": {"schema": {
+          "type": "object", "required": ["name", "email"],
+          "properties": {"name": {"type": "string", "example": "Ivan"}, "email": {"type": "string", "example": "ivan@test.com"}}}}}},
+        "responses": {"201": {"description": "Создан"}, "400": {"description": "Ошибка данных"}}
+      }
+    },
+    "/api/users/{id}": {
+      "delete": {
+        "parameters": [{"name": "id", "in": "path", "required": true, "schema": {"type": "integer"}, "example": 1}],
+        "responses": {"200": {"description": "Удалён"}, "401": {"description": "Нет ключа"}, "404": {"description": "Не найден"}}
+      }
+    },
+    "/users": {"get": {"responses": {"200": {"description": "HTML-страница со списком"}}}}
+  }
+}

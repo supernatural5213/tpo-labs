@@ -1,6 +1,6 @@
 """Учебное веб-приложение: REST API пользователей (Flask + SQLite)."""
 import sqlite3
-from flask import Flask, request, jsonify
+from flask import Flask, request, jsonify, send_file
 
 DB = "users.db"
 app = Flask(__name__)
@@ -61,6 +61,11 @@ def users_page():
     conn.close()
     items = "".join(f"<li>{r['name']} ({r['email']})</li>" for r in rows)
     return f"<html><body><h1>Пользователи</h1><ul>{items}</ul></body></html>"
+
+
+@app.route("/openapi.json")
+def openapi():
+    return send_file("openapi.json", mimetype="application/json")
 
 
 if __name__ == "__main__":
