@@ -1,0 +1,213 @@
+<?xml version="1.0" encoding="utf-8"?><testsuites name="pytest tests"><testsuite name="pytest" errors="0" failures="11" skipped="0" tests="14" time="0.549" timestamp="2026-10-22T21:49:27.609216+00:00" hostname="runnervm8k3b6"><testcase classname="tests.test_security" name="test_tc03_sqli_in_query_param_does_not_leak_rows" time="0.010"><failure message="AssertionError: инъекция вернула все записи&#10;assert [{'email': 'a...name': 'bob'}] == []&#10;  &#10;  Left contains 2 more items, first extra item: {'email': 'alice@test.com', 'id': 1, 'name': 'alice'}&#10;  &#10;  Full diff:&#10;  - []&#10;  + [&#10;  +     {&#10;  +         'email': 'alice@test.com',&#10;  +         'id': 1,&#10;  +         'name': 'alice',&#10;  +     },&#10;  +     {&#10;  +         'email': 'bob@test.com',&#10;  +         'id': 2,&#10;  +         'name': 'bob',&#10;  +     },&#10;  + ]">client = &lt;FlaskClient &lt;Flask 'app'&gt;&gt;
+
+    def test_tc03_sqli_in_query_param_does_not_leak_rows(client):
+        r = client.get("/api/users", query_string={"name": "' OR '1'='1"})
+        assert r.status_code in (200, 400)
+        if r.status_code == 200:
+&gt;           assert r.get_json() == [], "инъекция вернула все записи"
+E           AssertionError: инъекция вернула все записи
+E           assert [{'email': 'a...name': 'bob'}] == []
+E             
+E             Left contains 2 more items, first extra item: {'email': 'alice@test.com', 'id': 1, 'name': 'alice'}
+E             
+E             Full diff:
+E             - []
+E             + [
+E             +     {
+E             +         'email': 'alice@test.com',
+E             +         'id': 1,
+E             +         'name': 'alice',
+E             +     },
+E             +     {
+E             +         'email': 'bob@test.com',
+E             +         'id': 2,
+E             +         'name': 'bob',
+E             +     },
+E             + ]
+
+tests/test_security.py:30: AssertionError</failure></testcase><testcase classname="tests.test_security" name="test_tc03_sqli_in_path_does_not_delete_all" time="0.005"><failure message="assert 200 in (400, 404)&#10; +  where 200 = &lt;WrapperTestResponse streamed [200 OK]&gt;.status_code">client = &lt;FlaskClient &lt;Flask 'app'&gt;&gt;
+
+    def test_tc03_sqli_in_path_does_not_delete_all(client):
+        r = client.delete("/api/users/1 OR 1=1", headers={"X-API-Key": TOKEN})
+&gt;       assert r.status_code in (400, 404)
+E       assert 200 in (400, 404)
+E        +  where 200 = &lt;WrapperTestResponse streamed [200 OK]&gt;.status_code
+
+tests/test_security.py:35: AssertionError</failure></testcase><testcase classname="tests.test_security" name="test_tc04_stored_xss_is_escaped_on_html_page" time="0.019"><failure message="AssertionError: assert '&lt;script&gt;alert(1)&lt;/script&gt;' not in '&lt;html&gt;&lt;body...body&gt;&lt;/html&gt;'&#10;  &#10;  '&lt;script&gt;alert(1)&lt;/script&gt;' is contained here:&#10;    &lt;html&gt;&lt;body&gt;&lt;h1&gt;Пользователи&lt;/h1&gt;&lt;ul&gt;&lt;li&gt;alice (alice@test.com)&lt;/li&gt;&lt;li&gt;bob (bob@test.com)&lt;/li&gt;&lt;li&gt;&lt;script&gt;alert(1)&lt;/script&gt; (x@test.com)&lt;/li&gt;&lt;/ul&gt;&lt;/body&gt;&lt;/html&gt;&#10;  ?                                                                                                    +++++++++++++++++++++++++">client = &lt;FlaskClient &lt;Flask 'app'&gt;&gt;
+
+    def test_tc04_stored_xss_is_escaped_on_html_page(client):
+        payload = "&lt;script&gt;alert(1)&lt;/script&gt;"
+        client.post("/api/users", json={"name": payload, "email": "x@test.com"})
+        html = client.get("/users").get_data(as_text=True)
+&gt;       assert payload not in html
+E       AssertionError: assert '&lt;script&gt;alert(1)&lt;/script&gt;' not in '&lt;html&gt;&lt;body...body&gt;&lt;/html&gt;'
+E         
+E         '&lt;script&gt;alert(1)&lt;/script&gt;' is contained here:
+E           &lt;html&gt;&lt;body&gt;&lt;h1&gt;Пользователи&lt;/h1&gt;&lt;ul&gt;&lt;li&gt;alice (alice@test.com)&lt;/li&gt;&lt;li&gt;bob (bob@test.com)&lt;/li&gt;&lt;li&gt;&lt;script&gt;alert(1)&lt;/script&gt; (x@test.com)&lt;/li&gt;&lt;/ul&gt;&lt;/body&gt;&lt;/html&gt;
+E         ?                                                                                                    +++++++++++++++++++++++++
+
+tests/test_security.py:44: AssertionError</failure></testcase><testcase classname="tests.test_security" name="test_tc04_api_returns_json_content_type" time="0.004" /><testcase classname="tests.test_security" name="test_delete_without_api_key_is_rejected" time="0.004"><failure message="assert 200 == 401&#10; +  where 200 = &lt;WrapperTestResponse streamed [200 OK]&gt;.status_code">client = &lt;FlaskClient &lt;Flask 'app'&gt;&gt;
+
+    def test_delete_without_api_key_is_rejected(client):
+        r = client.delete("/api/users/1")
+&gt;       assert r.status_code == 401
+E       assert 200 == 401
+E        +  where 200 = &lt;WrapperTestResponse streamed [200 OK]&gt;.status_code
+
+tests/test_security.py:56: AssertionError</failure></testcase><testcase classname="tests.test_security" name="test_delete_with_wrong_api_key_is_rejected" time="0.004"><failure message="assert 200 == 401&#10; +  where 200 = &lt;WrapperTestResponse streamed [200 OK]&gt;.status_code">client = &lt;FlaskClient &lt;Flask 'app'&gt;&gt;
+
+    def test_delete_with_wrong_api_key_is_rejected(client):
+        r = client.delete("/api/users/1", headers={"X-API-Key": "wrong"})
+&gt;       assert r.status_code == 401
+E       assert 200 == 401
+E        +  where 200 = &lt;WrapperTestResponse streamed [200 OK]&gt;.status_code
+
+tests/test_security.py:62: AssertionError</failure></testcase><testcase classname="tests.test_security" name="test_delete_with_valid_key_works" time="0.004" /><testcase classname="tests.test_security" name="test_invalid_user_data_returns_400[body0]" time="0.004"><failure message="KeyError: 'name'">client = &lt;FlaskClient &lt;Flask 'app'&gt;&gt;, body = {}
+
+    @pytest.mark.parametrize("body", [{}, {"name": "x"}, {"name": "", "email": "a@b.c"},
+                                      {"name": "x", "email": "not-an-email"}, {"name": "x" * 500, "email": "a@b.c"}])
+    def test_invalid_user_data_returns_400(client, body):
+&gt;       assert client.post("/api/users", json=body).status_code == 400
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+tests/test_security.py:75: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+/opt/hostedtoolcache/Python/3.11.17/x64/lib/python3.11/site-packages/werkzeug/test.py:1171: in post
+    return self.open(*args, **kw)
+           ^^^^^^^^^^^^^^^^^^^^^^
+/opt/hostedtoolcache/Python/3.11.17/x64/lib/python3.11/site-packages/flask/testing.py:235: in open
+    response = super().open(
+/opt/hostedtoolcache/Python/3.11.17/x64/lib/python3.11/site-packages/werkzeug/test.py:1120: in open
+    response_parts = self.run_wsgi_app(request.environ, buffered=buffered)
+                     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+/opt/hostedtoolcache/Python/3.11.17/x64/lib/python3.11/site-packages/werkzeug/test.py:992: in run_wsgi_app
+    rv = run_wsgi_app(self.application, environ, buffered=buffered)
+         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+/opt/hostedtoolcache/Python/3.11.17/x64/lib/python3.11/site-packages/werkzeug/test.py:1268: in run_wsgi_app
+    app_rv = app(environ, start_response)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+/opt/hostedtoolcache/Python/3.11.17/x64/lib/python3.11/site-packages/flask/app.py:1536: in __call__
+    return self.wsgi_app(environ, start_response)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+/opt/hostedtoolcache/Python/3.11.17/x64/lib/python3.11/site-packages/flask/app.py:1514: in wsgi_app
+    response = self.handle_exception(e)
+               ^^^^^^^^^^^^^^^^^^^^^^^^
+/opt/hostedtoolcache/Python/3.11.17/x64/lib/python3.11/site-packages/flask/app.py:1511: in wsgi_app
+    response = self.full_dispatch_request()
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+/opt/hostedtoolcache/Python/3.11.17/x64/lib/python3.11/site-packages/flask/app.py:919: in full_dispatch_request
+    rv = self.handle_user_exception(e)
+         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+/opt/hostedtoolcache/Python/3.11.17/x64/lib/python3.11/site-packages/flask/app.py:917: in full_dispatch_request
+    rv = self.dispatch_request()
+         ^^^^^^^^^^^^^^^^^^^^^^^
+/opt/hostedtoolcache/Python/3.11.17/x64/lib/python3.11/site-packages/flask/app.py:902: in dispatch_request
+    return self.ensure_sync(self.view_functions[rule.endpoint])(**view_args)  # type: ignore[no-any-return]
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+    @app.route("/api/users", methods=["POST"])
+    def create_user():
+        data = request.get_json()
+        conn = get_db()
+&gt;       cur = conn.execute("INSERT INTO users (name, email) VALUES (?, ?)", (data["name"], data["email"]))
+                                                                             ^^^^^^^^^^^^
+E       KeyError: 'name'
+
+app.py:41: KeyError</failure></testcase><testcase classname="tests.test_security" name="test_invalid_user_data_returns_400[body1]" time="0.004"><failure message="KeyError: 'email'">client = &lt;FlaskClient &lt;Flask 'app'&gt;&gt;, body = {'name': 'x'}
+
+    @pytest.mark.parametrize("body", [{}, {"name": "x"}, {"name": "", "email": "a@b.c"},
+                                      {"name": "x", "email": "not-an-email"}, {"name": "x" * 500, "email": "a@b.c"}])
+    def test_invalid_user_data_returns_400(client, body):
+&gt;       assert client.post("/api/users", json=body).status_code == 400
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+tests/test_security.py:75: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+/opt/hostedtoolcache/Python/3.11.17/x64/lib/python3.11/site-packages/werkzeug/test.py:1171: in post
+    return self.open(*args, **kw)
+           ^^^^^^^^^^^^^^^^^^^^^^
+/opt/hostedtoolcache/Python/3.11.17/x64/lib/python3.11/site-packages/flask/testing.py:235: in open
+    response = super().open(
+/opt/hostedtoolcache/Python/3.11.17/x64/lib/python3.11/site-packages/werkzeug/test.py:1120: in open
+    response_parts = self.run_wsgi_app(request.environ, buffered=buffered)
+                     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+/opt/hostedtoolcache/Python/3.11.17/x64/lib/python3.11/site-packages/werkzeug/test.py:992: in run_wsgi_app
+    rv = run_wsgi_app(self.application, environ, buffered=buffered)
+         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+/opt/hostedtoolcache/Python/3.11.17/x64/lib/python3.11/site-packages/werkzeug/test.py:1268: in run_wsgi_app
+    app_rv = app(environ, start_response)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+/opt/hostedtoolcache/Python/3.11.17/x64/lib/python3.11/site-packages/flask/app.py:1536: in __call__
+    return self.wsgi_app(environ, start_response)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+/opt/hostedtoolcache/Python/3.11.17/x64/lib/python3.11/site-packages/flask/app.py:1514: in wsgi_app
+    response = self.handle_exception(e)
+               ^^^^^^^^^^^^^^^^^^^^^^^^
+/opt/hostedtoolcache/Python/3.11.17/x64/lib/python3.11/site-packages/flask/app.py:1511: in wsgi_app
+    response = self.full_dispatch_request()
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+/opt/hostedtoolcache/Python/3.11.17/x64/lib/python3.11/site-packages/flask/app.py:919: in full_dispatch_request
+    rv = self.handle_user_exception(e)
+         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+/opt/hostedtoolcache/Python/3.11.17/x64/lib/python3.11/site-packages/flask/app.py:917: in full_dispatch_request
+    rv = self.dispatch_request()
+         ^^^^^^^^^^^^^^^^^^^^^^^
+/opt/hostedtoolcache/Python/3.11.17/x64/lib/python3.11/site-packages/flask/app.py:902: in dispatch_request
+    return self.ensure_sync(self.view_functions[rule.endpoint])(**view_args)  # type: ignore[no-any-return]
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+    @app.route("/api/users", methods=["POST"])
+    def create_user():
+        data = request.get_json()
+        conn = get_db()
+&gt;       cur = conn.execute("INSERT INTO users (name, email) VALUES (?, ?)", (data["name"], data["email"]))
+                                                                                           ^^^^^^^^^^^^^
+E       KeyError: 'email'
+
+app.py:41: KeyError</failure></testcase><testcase classname="tests.test_security" name="test_invalid_user_data_returns_400[body2]" time="0.005"><failure message="AssertionError: assert 201 == 400&#10; +  where 201 = &lt;WrapperTestResponse streamed [201 CREATED]&gt;.status_code&#10; +    where &lt;WrapperTestResponse streamed [201 CREATED]&gt; = post('/api/users', json={'name': '', 'email': 'a@b.c'})&#10; +      where post = &lt;FlaskClient &lt;Flask 'app'&gt;&gt;.post">client = &lt;FlaskClient &lt;Flask 'app'&gt;&gt;, body = {'name': '', 'email': 'a@b.c'}
+
+    @pytest.mark.parametrize("body", [{}, {"name": "x"}, {"name": "", "email": "a@b.c"},
+                                      {"name": "x", "email": "not-an-email"}, {"name": "x" * 500, "email": "a@b.c"}])
+    def test_invalid_user_data_returns_400(client, body):
+&gt;       assert client.post("/api/users", json=body).status_code == 400
+E       AssertionError: assert 201 == 400
+E        +  where 201 = &lt;WrapperTestResponse streamed [201 CREATED]&gt;.status_code
+E        +    where &lt;WrapperTestResponse streamed [201 CREATED]&gt; = post('/api/users', json={'name': '', 'email': 'a@b.c'})
+E        +      where post = &lt;FlaskClient &lt;Flask 'app'&gt;&gt;.post
+
+tests/test_security.py:75: AssertionError</failure></testcase><testcase classname="tests.test_security" name="test_invalid_user_data_returns_400[body3]" time="0.004"><failure message="AssertionError: assert 201 == 400&#10; +  where 201 = &lt;WrapperTestResponse streamed [201 CREATED]&gt;.status_code&#10; +    where &lt;WrapperTestResponse streamed [201 CREATED]&gt; = post('/api/users', json={'name': 'x', 'email': 'not-an-email'})&#10; +      where post = &lt;FlaskClient &lt;Flask 'app'&gt;&gt;.post">client = &lt;FlaskClient &lt;Flask 'app'&gt;&gt;
+body = {'name': 'x', 'email': 'not-an-email'}
+
+    @pytest.mark.parametrize("body", [{}, {"name": "x"}, {"name": "", "email": "a@b.c"},
+                                      {"name": "x", "email": "not-an-email"}, {"name": "x" * 500, "email": "a@b.c"}])
+    def test_invalid_user_data_returns_400(client, body):
+&gt;       assert client.post("/api/users", json=body).status_code == 400
+E       AssertionError: assert 201 == 400
+E        +  where 201 = &lt;WrapperTestResponse streamed [201 CREATED]&gt;.status_code
+E        +    where &lt;WrapperTestResponse streamed [201 CREATED]&gt; = post('/api/users', json={'name': 'x', 'email': 'not-an-email'})
+E        +      where post = &lt;FlaskClient &lt;Flask 'app'&gt;&gt;.post
+
+tests/test_security.py:75: AssertionError</failure></testcase><testcase classname="tests.test_security" name="test_invalid_user_data_returns_400[body4]" time="0.004"><failure message="AssertionError: assert 201 == 400&#10; +  where 201 = &lt;WrapperTestResponse streamed [201 CREATED]&gt;.status_code&#10; +    where &lt;WrapperTestResponse streamed [201 CREATED]&gt; = post('/api/users', json={'name': 'xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx', 'email': 'a@b.c'})&#10; +      where post = &lt;FlaskClient &lt;Flask 'app'&gt;&gt;.post">client = &lt;FlaskClient &lt;Flask 'app'&gt;&gt;
+body = {'name': 'xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx...xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx', 'email': 'a@b.c'}
+
+    @pytest.mark.parametrize("body", [{}, {"name": "x"}, {"name": "", "email": "a@b.c"},
+                                      {"name": "x", "email": "not-an-email"}, {"name": "x" * 500, "email": "a@b.c"}])
+    def test_invalid_user_data_returns_400(client, body):
+&gt;       assert client.post("/api/users", json=body).status_code == 400
+E       AssertionError: assert 201 == 400
+E        +  where 201 = &lt;WrapperTestResponse streamed [201 CREATED]&gt;.status_code
+E        +    where &lt;WrapperTestResponse streamed [201 CREATED]&gt; = post('/api/users', json={'name': 'xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx', 'email': 'a@b.c'})
+E        +      where post = &lt;FlaskClient &lt;Flask 'app'&gt;&gt;.post
+
+tests/test_security.py:75: AssertionError</failure></testcase><testcase classname="tests.test_security" name="test_non_json_body_returns_400" time="0.195" /><testcase classname="tests.test_security" name="test_security_headers_present" time="0.004"><failure message="AssertionError: assert None == 'nosniff'&#10; +  where None = get('X-Content-Type-Options')&#10; +    where get = Headers([('Content-Type', 'application/json'), ('Content-Length', '96')]).get">client = &lt;FlaskClient &lt;Flask 'app'&gt;&gt;
+
+    def test_security_headers_present(client):
+        h = client.get("/api/users").headers
+&gt;       assert h.get("X-Content-Type-Options") == "nosniff"
+E       AssertionError: assert None == 'nosniff'
+E        +  where None = get('X-Content-Type-Options')
+E        +    where get = Headers([('Content-Type', 'application/json'), ('Content-Length', '96')]).get
+
+tests/test_security.py:86: AssertionError</failure></testcase></testsuite></testsuites>
