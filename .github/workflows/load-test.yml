@@ -6,6 +6,9 @@ on:
   pull_request:
     branches: [ main ]
 
+permissions:
+  contents: write
+
 jobs:
   load_test:
     runs-on: ubuntu-latest
@@ -45,3 +48,9 @@ jobs:
             load_report_*.csv
             load_report.html
             check_load.txt
+
+      - name: Save reports to ci-reports branch
+        if: always()
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: bash save_reports.sh load-test load_report_stats.csv load_report_failures.csv load_report_exceptions.csv load_report_stats_history.csv load_report.html check_load.txt
