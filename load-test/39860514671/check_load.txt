@@ -1,0 +1,4 @@
+PASS  TC-01 GET /api/users: среднее < 200 мс: 2.33
+PASS  TC-02 POST /api/users: среднее < 300 мс: 11.84
+PASS  TC-03 50 users: ошибки < 1 %: 0.00
+RPS (TPS): 24.79; p95: 7 мс; p99: 26 мс
