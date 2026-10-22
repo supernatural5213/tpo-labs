@@ -30,7 +30,7 @@ jobs:
       # TC-03, TC-04 и дополнительные негативные тесты API
       - name: Run API security tests
         if: always()
-        run: pytest tests -v --junitxml=pytest_report.xml
+        run: python -m pytest tests -v --junitxml=pytest_report.xml
 
       - name: Run Flask app
         if: always()
@@ -50,7 +50,8 @@ jobs:
           docker run --network host -u root -v ${{ github.workspace }}:/zap/wrk:rw \
             ghcr.io/zaproxy/zaproxy:stable zap-api-scan.py \
             -t http://localhost:5000/openapi.json -f openapi \
-            -r zap_report.html -J zap_report.json -w zap_report.md -I
+            -r zap_report.html -J zap_report.json -w zap_report.md -I 2>&1 | tee zap_console.txt
+          ls -la
 
       - name: Publish results
         if: always()
@@ -67,3 +68,4 @@ jobs:
             zap_report.md
             bandit_report.txt
             pytest_report.xml
+            zap_console.txt

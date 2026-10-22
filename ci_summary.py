@@ -1,5 +1,5 @@
 """Публикация ключевых результатов CI: аннотации ::notice и сводка шага (GITHUB_STEP_SUMMARY)."""
-import csv, json, os, re, sys, xml.etree.ElementTree as ET
+import csv, json, os, re
 
 lines = []
 if os.path.exists("load_report_stats.csv"):
@@ -17,12 +17,14 @@ if os.path.exists("bandit_report.txt"):
     if tot:
         lines.append(f"BANDIT TOTAL Low={tot.group(1)} Medium={tot.group(2)} High={tot.group(3)}")
 if os.path.exists("pytest_report.xml"):
-    root = ET.parse("pytest_report.xml").getroot()
-    s = root if root.tag == "testsuite" else root.find("testsuite")
-    lines.append(f"PYTEST tests={s.get('tests')} failures={s.get('failures')} errors={s.get('errors')}")
-    for tc in s.iter("testcase"):
-        st = "FAILED" if tc.find("failure") is not None or tc.find("error") is not None else "PASSED"
-        lines.append(f"PYTEST {st} {tc.get('name')}")
+    x = open("pytest_report.xml", encoding="utf-8").read()
+    m = re.search(r'<testsuite [^>]*', x)
+    attrs = dict(re.findall(r'(\w+)="([^"]*)"', m.group(0))) if m else {}
+    lines.append(f"PYTEST tests={attrs.get('tests')} failures={attrs.get('failures')} errors={attrs.get('errors')}")
+    for tc in re.finditer(r'<testcase [^>]*?name="([^"]+)"[^>]*?(/>|>(.*?)</testcase>)', x, re.S):
+        body = tc.group(3) or ""
+        st = "FAILED" if ("<failure" in body or "<error" in body) else "PASSED"
+        lines.append(f"PYTEST {st} {tc.group(1)}")
 if os.path.exists("zap_report.json"):
     z = json.load(open("zap_report.json"))
     cnt = {}
@@ -32,6 +34,10 @@ if os.path.exists("zap_report.json"):
             cnt[risk] = cnt.get(risk, 0) + 1
             lines.append(f"ZAP {a.get('riskdesc')} [{a.get('pluginid')}] {a.get('name')} (instances={len(a.get('instances', []))})")
     lines.append("ZAP TOTAL " + ", ".join(f"{k}={v}" for k, v in sorted(cnt.items())) if cnt else "ZAP TOTAL no alerts")
+
+if os.path.exists("zap_console.txt"):
+    tail = open("zap_console.txt", encoding="utf-8", errors="replace").read().splitlines()
+    lines += ["ZAPLOG " + l for l in tail if l.startswith(("FAIL", "WARN", "PASS:", "INFO")) or "ERROR" in l][-40:]
 
 for l in lines:
     print(f"::notice title=result::{l}")

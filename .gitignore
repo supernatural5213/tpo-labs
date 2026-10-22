@@ -7,3 +7,4 @@ bandit_report.txt
 pytest_report.xml
 check_load.txt
 .venv/
+zap_console.txt
