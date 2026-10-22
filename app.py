@@ -44,9 +44,11 @@ def security_headers(resp):
     """A05: защитные заголовки HTTP."""
     resp.headers["X-Content-Type-Options"] = "nosniff"
     resp.headers["X-Frame-Options"] = "DENY"
-    resp.headers["Content-Security-Policy"] = "default-src 'none'; frame-ancestors 'none'"
+    resp.headers["Content-Security-Policy"] = "default-src 'none'; frame-ancestors 'none'; form-action 'none'; base-uri 'none'"
     resp.headers["Cache-Control"] = "no-store"
     resp.headers["Cross-Origin-Resource-Policy"] = "same-origin"
+    resp.headers["Cross-Origin-Opener-Policy"] = "same-origin"
+    resp.headers["Cross-Origin-Embedder-Policy"] = "require-corp"
     resp.headers["Permissions-Policy"] = "geolocation=(), camera=(), microphone=()"
     return resp
 
